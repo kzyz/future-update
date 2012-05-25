@@ -1,0 +1,80 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Future Update\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-05-25 23:26+0900\n"
+"PO-Revision-Date: 2012-05-25 23:31+0900\n"
+"Last-Translator: Kazunori Yamazaki <yamazaki@gluum.com>\n"
+"Language-Team: kzyz <yamazaki@gluum.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-KeywordsList: __;_e\n"
+"X-Poedit-Basepath: /Users/kzyz/github/local/\n"
+"X-Poedit-Language: Japanese\n"
+"X-Poedit-Country: JAPAN\n"
+"X-Poedit-SearchPath-0: future-update\n"
+
+#: future-update/future-update.php:74
+msgid "Future Update"
+msgstr "予約更新"
+
+#: future-update/future-update.php:94
+#: future-update/future-update.php:173
+msgid "None"
+msgstr ""
+
+#: future-update/future-update.php:97
+msgid "Y/m/d g:i:s A"
+msgstr ""
+
+#: future-update/future-update.php:104
+#, php-format
+msgid "%s ago"
+msgstr ""
+
+#: future-update/future-update.php:106
+msgid "Y/m/d"
+msgstr ""
+
+#: future-update/future-update.php:113
+msgid "Missed schedule"
+msgstr "予約更新の失敗"
+
+#: future-update/future-update.php:115
+msgid "Scheduled"
+msgstr ""
+
+#: future-update/future-update.php:169
+msgid "M j, Y @ G:i"
+msgstr ""
+
+#: future-update/future-update.php:179
+msgid "Update on"
+msgstr "予約更新"
+
+#: future-update/future-update.php:180
+msgid "Edit"
+msgstr "編集"
+
+#: future-update/future-update.php:235
+msgid "Enable Future Update"
+msgstr "予約更新を有効にします。"
+
+#: future-update/future-update.php:237
+#, php-format
+msgid "%1$s%2$s, %3$s @ %4$s : %5$s"
+msgstr ""
+
+#: future-update/future-update.php:246
+msgid "OK"
+msgstr ""
+
+#: future-update/future-update.php:247
+msgid "Cancel"
+msgstr ""
+
+#: future-update/future-update.php:301
+msgid "No content."
+msgstr "コンテンツがありません。"
+
