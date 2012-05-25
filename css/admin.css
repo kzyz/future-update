@@ -1,0 +1,34 @@
+.curtime #futureupdate_timestamp {
+    background-image: url("../images/date-button.gif");
+}
+
+.curtime #futureupdate_timestamp {
+    background-position: left top;
+    background-repeat: no-repeat;
+    padding-left: 18px;
+	line-height: 23px;
+}
+
+th#fupdate {
+	width: 10%;	
+}
+
+#fup_year, #fup_day, #fup_hour, #fup_minute {
+padding: 1px;
+font-size: 12px;
+}
+
+#fup_year {
+width: 3.4em;
+}
+
+#fup_day, #fup_hour, #fup_minute {
+width: 2em;
+}
+
+#futureupdate_timestamp select {
+height: 20px;
+line-height: 14px;
+padding: 0;
+vertical-align: top;
+}
