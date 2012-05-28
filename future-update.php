@@ -25,6 +25,9 @@ Text Domain: future-update
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+
+global $future_update;
+
 class FutureUpdate
 {
 
@@ -62,6 +65,69 @@ class FutureUpdate
 		add_action( 'post_submitbox_misc_actions', array( &$this, 'submitbox' ) );
 		add_action( 'admin_print_styles', array( &$this, 'addAdminCss' ), 30 );
 		add_action( 'admin_print_scripts', array( &$this, 'addAdminScripts' ) );
+	}
+
+	/**
+	 * deleteExpiredPosts
+	 *
+	 * @param none
+	 * @return none
+	 */
+	function deleteExpiredPosts() {
+		global $wpdb;
+
+		$time_adj = current_time( 'mysql', 1 );
+
+		$results = $wpdb -> get_results(
+								$wpdb -> prepare(
+									"SELECT post_id, meta_value " .
+									"FROM " . $wpdb -> postmeta . " as postmeta, " . $wpdb -> posts ." as posts " .
+									"WHERE postmeta.post_id = posts.ID " .
+									"AND posts.post_status = %s " .
+									"AND postmeta.meta_key = %s " .
+									"AND postmeta.meta_value <= %s ",
+									'publish',
+									'fup_date_gmt',
+									$time_adj
+								)
+							);
+	  	if ( !empty( $results ) ) {
+	  		foreach ( $results as $row ) {
+				wp_update_post( array( 'ID' => $row -> post_id, 'post_status' => 'draft' ) );
+	  		}
+		}
+	}
+
+	/**
+	 * activate
+	 *
+	 * @param none
+	 * @return none
+	 */
+	function activate() {
+		global $current_blog;
+
+		$time = time();
+
+		if ( is_multisite() )
+			wp_schedule_event( $time, 'postexpiratorminute', 'expirationdate_delete_'. $current_blog -> blog_id );
+		else
+			wp_schedule_event( $time, 'postexpiratorminute', 'expirationdate_delete' );
+	}
+
+	/**
+	 * deactivate
+	 *
+	 * @param none
+	 * @return none
+	 */
+	function deactivate() {
+		global $current_blog;
+
+		if ( is_multisite() )
+			wp_clear_scheduled_hook( 'expirationdate_delete_' . $current_blog -> blog_id );
+		else
+			wp_clear_scheduled_hook( 'expirationdate_delete' );
 	}
 
 	/**
@@ -124,9 +190,11 @@ class FutureUpdate
 	 * @return none
 	 */
 	function updatePostMeta( $id ) {
+		/*
 		if ( !wp_verify_nonce( $_POST['_futureupdate_nonce'], $this->key ) ) {
 			return $post_id;
 		}
+		*/
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
 			return $post_id;
 
@@ -216,7 +284,7 @@ class FutureUpdate
 		$mn = ( $edit ) ? mysql2date( 'i', $fup_date, false ) : gmdate( 'i', $time_adj );
 		$ss = ( $edit ) ? mysql2date( 's', $fup_date, false ) : gmdate( 's', $time_adj );
 
-		$month = "<select " . ( $multi ? '' : 'id="exp_month" ' ) . "name=\"exp_month\"$tab_index_attribute>\n";
+		$month = "<select " . ( $multi ? '' : 'id="fup_month" ' ) . "name=\"fup_month\"$tab_index_attribute>\n";
 		for ( $i = 1; $i < 13; $i = $i +1 ) {
 			$month .= "\t\t\t" . '<option value="' . zeroise($i, 2) . '"';
 			if ( $i == $mm )
@@ -279,8 +347,8 @@ class FutureUpdate
 	{
 		global $post;
 
-		$now = date();
-		$update = strtotime( get_post_meta( $post -> ID, 'fup_date' , true ) );
+		$now = time();
+		$update = strtotime( get_post_meta( $post -> ID, 'fup_date_gmt' , true ) );
 		if ( !$update || ( $update && $update <= $now ) )
 			return get_the_content();
 
