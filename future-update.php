@@ -363,7 +363,7 @@ class FutureUpdate
 			foreach ( $revisions as $revision )
 				return $revision->post_content;
 
-		return __( var_dump($revisions) . 'No content.' );
+		return __( 'No content.' );
 	}
 
 }
