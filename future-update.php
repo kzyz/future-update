@@ -26,8 +26,6 @@ Text Domain: future-update
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-global $future_update;
-
 class FutureUpdate
 {
 
@@ -56,46 +54,21 @@ class FutureUpdate
 		$this->plugin_dir = get_option( 'siteurl' ) . '/wp-content/plugins/' . dirname( $this->plugin_base_name );
 		load_plugin_textdomain( $this->text_domain, false, dirname( $this->plugin_base_name ) . '/languages' );
 
+		register_activation_hook( __FILE__, array( &$this, 'activate' ) );
+		register_deactivation_hook( __FILE__, array( &$this, 'deactivate' ) );
+
 		add_filter( 'manage_posts_columns', array( &$this, 'addColumns' ) );
 		add_filter( 'manage_pages_columns', array( &$this, 'addColumns' ) );
+		add_filter( 'the_content', array( &$this, 'getFutureContent' ) );
 
 		add_action( 'manage_posts_custom_column', array( &$this, 'showValue' ) );
 		add_action( 'manage_pages_custom_column', array( &$this, 'showValue' ) );
 		add_action( 'save_post', array( &$this, 'updatePostMeta' ) );
+		add_action( '_wp_put_post_revision', array( &$this, 'makeRevisionMeta' ) );
+		add_action( 'wp_restore_post_revision', array( &$this, 'restoreRevisionMeta' ), 10, 2 );
 		add_action( 'post_submitbox_misc_actions', array( &$this, 'submitbox' ) );
 		add_action( 'admin_print_styles', array( &$this, 'addAdminCss' ), 30 );
 		add_action( 'admin_print_scripts', array( &$this, 'addAdminScripts' ) );
-	}
-
-	/**
-	 * deleteExpiredPosts
-	 *
-	 * @param none
-	 * @return none
-	 */
-	function deleteExpiredPosts() {
-		global $wpdb;
-
-		$time_adj = current_time( 'mysql', 1 );
-
-		$results = $wpdb -> get_results(
-								$wpdb -> prepare(
-									"SELECT post_id, meta_value " .
-									"FROM " . $wpdb -> postmeta . " as postmeta, " . $wpdb -> posts ." as posts " .
-									"WHERE postmeta.post_id = posts.ID " .
-									"AND posts.post_status = %s " .
-									"AND postmeta.meta_key = %s " .
-									"AND postmeta.meta_value <= %s ",
-									'publish',
-									'fup_date_gmt',
-									$time_adj
-								)
-							);
-	  	if ( !empty( $results ) ) {
-	  		foreach ( $results as $row ) {
-				wp_update_post( array( 'ID' => $row -> post_id, 'post_status' => 'draft' ) );
-	  		}
-		}
 	}
 
 	/**
@@ -105,14 +78,13 @@ class FutureUpdate
 	 * @return none
 	 */
 	function activate() {
-		global $current_blog;
+		global $wpdb;
 
-		$time = time();
-
-		if ( is_multisite() )
-			wp_schedule_event( $time, 'postexpiratorminute', 'expirationdate_delete_'. $current_blog -> blog_id );
-		else
-			wp_schedule_event( $time, 'postexpiratorminute', 'expirationdate_delete' );
+		$results = $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_date, post_date_gmt FROM $wpdb->posts WHERE post_status = %s", 'publish' ) );
+		foreach ( $results as $result ) {
+			update_post_meta( $result->ID, 'fup_date', $result->post_date );
+			update_post_meta( $result->ID, 'fup_date_gmt', $result->post_date_gmt );
+		}
 	}
 
 	/**
@@ -122,12 +94,9 @@ class FutureUpdate
 	 * @return none
 	 */
 	function deactivate() {
-		global $current_blog;
+		global $wpdb;
 
-		if ( is_multisite() )
-			wp_clear_scheduled_hook( 'expirationdate_delete_' . $current_blog -> blog_id );
-		else
-			wp_clear_scheduled_hook( 'expirationdate_delete' );
+		$wpdb->get_results( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = %s OR meta_key = %s", 'fup_date', 'fup_date_gmt' ) );
 	}
 
 	/**
@@ -173,6 +142,7 @@ class FutureUpdate
 			}
 
 			echo '<abbr title="' . $t_time . '">' . $h_time . '</abbr>';
+			/*
 			echo '<br />';
 			if ( 'publish' == $post -> post_status && !empty( $utc ) ) {
 				if ( $time_diff > 0 )
@@ -180,6 +150,7 @@ class FutureUpdate
 				else
 					_e( 'Scheduled' );
 			}
+			*/
 		}
 	}
 
@@ -190,39 +161,62 @@ class FutureUpdate
 	 * @return none
 	 */
 	function updatePostMeta( $id ) {
-		/*
-		if ( !wp_verify_nonce( $_POST['_futureupdate_nonce'], $this->key ) ) {
-			return $post_id;
-		}
-		*/
+
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-			return $post_id;
+			return $id;
 
 		if ( 'page' == $_POST['post_type'] ) {
-			if ( !current_user_can( 'edit_page', $post_id ) )
-				return $post_id;
+			if ( !current_user_can( 'edit_page', $id ) )
+				return $id;
 		} else {
-			if ( !current_user_can( 'edit_post', $post_id ) )
-				return $post_id;
+			if ( !current_user_can( 'edit_post', $id ) )
+				return $id;
 		}
 
-		if ( isset( $_POST['fup_check'] ) ) {
-		    $month	= intval( $_POST['fup_month'] );
-		    $day	= intval( $_POST['fup_day'] );
-		    $year	= intval( $_POST['fup_year'] );
-		    $hour	= intval( $_POST['fup_hour'] );
-		    $minute	= intval( $_POST['fup_minute'] );
-		    $second	= intval( $_POST['fup_second'] );
+		$month	= intval( $_POST['fup_month'] );
+		$day	= intval( $_POST['fup_day'] );
+		$year	= intval( $_POST['fup_year'] );
+		$hour	= intval( $_POST['fup_hour'] );
+		$minute	= intval( $_POST['fup_minute'] );
+		$second	= intval( $_POST['fup_second'] );
 
-			$utc = sprintf( "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $minute, $second );
-			$gmt = get_gmt_from_date( $utc );
+		$utc = sprintf( "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $minute, $second );
+		$gmt = get_gmt_from_date( $utc );
 
-			update_post_meta( $id, 'fup_date', $utc );
-			update_post_meta( $id, 'fup_date_gmt', $gmt );
-		} else {
-			delete_post_meta( $id, 'fup_date' );
-			delete_post_meta( $id, 'fup_date_gmt' );
+		update_post_meta( $id, 'fup_date', $utc );
+		update_post_meta( $id, 'fup_date_gmt', $gmt );
+
+	}
+
+	/**
+	 * makeRevisionMeta
+	 *
+	 * @param $revision_id
+	 * @return none
+	 */
+	function makeRevisionMeta( $revision_id ) {
+		global $wpdb;
+
+		if ( $parent_id = wp_is_post_revision( $revision_id ) ) {
+			$utc = get_post_meta( $parent_id, 'fup_date', true );
+			$gmt = get_post_meta( $parent_id, 'fup_date_gmt', true );
+			$wpdb->insert( $wpdb->postmeta, array( 'post_id' => $revision_id, 'meta_key' => 'fup_date', 'meta_value' => $utc  ), array( '%d', '%s', '%s' ) );
+			$wpdb->insert( $wpdb->postmeta, array( 'post_id' => $revision_id, 'meta_key' => 'fup_date_gmt', 'meta_value' => $gmt  ), array( '%d', '%s', '%s' ) );
 		}
+	}
+
+	/**
+	 * restoreRevisionMeta
+	 *
+	 * @param $id
+	 * @return none
+	 */
+	function restoreRevisionMeta( $post_id, $revision_id ) {
+		$utc = get_post_meta( $revision_id, 'fup_date', true );
+		$gmt = get_post_meta( $revision_id, 'fup_date_gmt', true );
+
+		update_post_meta( $post_id, 'fup_date', $utc );
+		update_post_meta( $post_id, 'fup_date_gmt', $gmt );
 	}
 
 	/**
@@ -247,7 +241,6 @@ class FutureUpdate
 		echo '	<span id="futureupdate_timestamp">' . __( 'Update on', $this -> text_domain ) . ': <b>' . $fup_date . '</b></span>';
 		echo '	<a href="#edit_futureupdate_date" class="edit-futureupdate_date hide-if-no-js" tabindex="4">' . __( 'Edit' ) . '</a>';
 		echo '	<div id="futureupdate_date_div" class="hide-if-js">';
-		echo '	<input type="hidden" name="_futureupdate_nonce" id="_futureupdate_nonce"　value="' . wp_create_nonce( $this->key ) . '" />';
 		$this -> touchTime( ( $action == 'edit' ), 1, 4 );
 		echo '	</div>';
 		echo '</div>';
@@ -300,7 +293,6 @@ class FutureUpdate
 
 
 		echo '<div class="futureupdate_date-wrap">';
-		echo '<p><input type="checkbox" name="fup_check" id="fup_check"' . ( ( !$fup_date_gmt ) ? '' : ' checked="checked"' ) . ' /> ' . __( 'Enable Future Update', $this -> text_domain ) . '</p>';
 		/* translators: 1: month input, 2: day input, 3: year input, 4: hour input, 5: minute input */
 		printf(__('%1$s%2$s, %3$s @ %4$s : %5$s'), $month, $day, $year, $hour, $minute);
 
@@ -343,14 +335,15 @@ class FutureUpdate
 	 * @param none
 	 * @return none
 	 */
-	function getFutureContent()
+	function getFutureContent( $content )
 	{
 		global $post;
 
 		$now = time();
+		$date = gmdate( "Y-m-d H:i:s" );
 		$update = strtotime( get_post_meta( $post -> ID, 'fup_date_gmt' , true ) );
 		if ( !$update || ( $update && $update <= $now ) )
-			return get_the_content();
+			return $content;
 
 		$args = array(
 			'order' => 'DESC',
@@ -358,15 +351,19 @@ class FutureUpdate
 			'post_parent' => $post->ID,
 			'post_type' => 'revision',
 			'post_status' => 'inherit',
-			'meta_key' => 'fup_date_gmt',
-			'meta_value' => $now,
-			'meta_compare' => '<='
+			'meta_query' => array(
+				array(
+					'key' => 'fup_date_gmt',
+					'value' => $date,
+					'compare' => '<='
+				)
+			)
 		);
 		if ( $revisions = get_children( $args ) )
 			foreach ( $revisions as $revision )
 				return $revision->post_content;
 
-		return __( 'No content.' );
+		return __( var_dump($revisions) . 'No content.' );
 	}
 
 }
