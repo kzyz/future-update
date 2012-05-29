@@ -82,8 +82,10 @@ class FutureUpdate
 
 		$results = $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_date, post_date_gmt FROM $wpdb->posts WHERE post_status = %s", 'publish' ) );
 		foreach ( $results as $result ) {
-			update_post_meta( $result->ID, 'fup_date', $result->post_date );
-			update_post_meta( $result->ID, 'fup_date_gmt', $result->post_date_gmt );
+			$post_id = $result->ID;
+			update_post_meta( $post_id, 'fup_date', $result->post_date );
+			update_post_meta( $post_id, 'fup_date_gmt', $result->post_date_gmt );
+			wp_update_post( array( 'ID' => $post_id ) );
 		}
 	}
 
@@ -165,27 +167,36 @@ class FutureUpdate
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
 			return $id;
 
-		if ( 'page' == $_POST['post_type'] ) {
-			if ( !current_user_can( 'edit_page', $id ) )
-				return $id;
-		} else {
-			if ( !current_user_can( 'edit_post', $id ) )
-				return $id;
+		if ( array_key_exists( 'post_type', $_POST ) ) {
+			if ( 'page' == $_POST['post_type'] ) {
+				if ( !current_user_can( 'edit_page', $id ) )
+					return $id;
+			} else {
+				if ( !current_user_can( 'edit_post', $id ) )
+					return $id;
+			}
 		}
 
-		$month	= intval( $_POST['fup_month'] );
-		$day	= intval( $_POST['fup_day'] );
-		$year	= intval( $_POST['fup_year'] );
-		$hour	= intval( $_POST['fup_hour'] );
-		$minute	= intval( $_POST['fup_minute'] );
-		$second	= intval( $_POST['fup_second'] );
+		if ( array_key_exists( 'fup_month', $_POST )
+				&& array_key_exists( 'fup_day', $_POST )
+				&& array_key_exists( 'fup_year', $_POST )
+				&& array_key_exists( 'fup_hour', $_POST )
+				&& array_key_exists( 'fup_minute', $_POST )
+				&& array_key_exists( 'fup_second', $_POST ) ) {
 
-		$utc = sprintf( "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $minute, $second );
-		$gmt = get_gmt_from_date( $utc );
+			$month	= intval( $_POST['fup_month'] );
+			$day	= intval( $_POST['fup_day'] );
+			$year	= intval( $_POST['fup_year'] );
+			$hour	= intval( $_POST['fup_hour'] );
+			$minute	= intval( $_POST['fup_minute'] );
+			$second	= intval( $_POST['fup_second'] );
 
-		update_post_meta( $id, 'fup_date', $utc );
-		update_post_meta( $id, 'fup_date_gmt', $gmt );
+			$utc = sprintf( "%04d-%02d-%02d %02d:%02d:%02d", $year, $month, $day, $hour, $minute, $second );
+			$gmt = get_gmt_from_date( $utc );
 
+			update_post_meta( $id, 'fup_date', $utc );
+			update_post_meta( $id, 'fup_date_gmt', $gmt );
+		}
 	}
 
 	/**
