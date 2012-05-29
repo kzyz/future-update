@@ -351,7 +351,7 @@ class FutureUpdate
 		global $post;
 
 		$now = time();
-		$date = gmdate( "Y-m-d H:i:s" );
+		$date = date( "Y-m-d H:i:s" );
 		$update = strtotime( get_post_meta( $post -> ID, 'fup_date_gmt' , true ) );
 		if ( !$update || ( $update && $update <= $now ) )
 			return $content;
