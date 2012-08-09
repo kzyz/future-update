@@ -3,7 +3,7 @@
 Plugin Name: Future Update
 Plugin URI:
 Description: Post/Page reservation update.
-Version: 0.1
+Version: 0.2
 Author: Kazunori Yamazaki
 Author URI:
 License: GPL2
@@ -353,7 +353,7 @@ class FutureUpdate
 		$now = time();
 		$date = date( "Y-m-d H:i:s" );
 		$update = strtotime( get_post_meta( $post -> ID, 'fup_date_gmt' , true ) );
-		if ( !$update || ( $update && $update <= $now ) )
+		if ( !$update || ( $update && $update <= $now ) || is_preview() )
 			return $content;
 
 		$args = array(
