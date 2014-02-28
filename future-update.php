@@ -3,7 +3,7 @@
 Plugin Name: Future Update
 Plugin URI:
 Description: Post/Page reservation update.
-Version: 0.2
+Version: 0.3
 Author: Kazunori Yamazaki
 Author URI:
 License: GPL2
@@ -46,7 +46,7 @@ class FutureUpdate
 	{
 		global $post;
 
-		$this->version = '0.1';
+		$this->version = '0.3';
 		$this->key = 'futureupdate';
 		$this->text_domain = 'future-update';
 		$this->plugin_base_name = plugin_basename( __FILE__ );
@@ -249,7 +249,7 @@ class FutureUpdate
 		}
 
 		echo '<div class="misc-pub-section curtime misc-pub-section-last" style="border-top:1px solid #EEE">';
-		echo '	<span id="futureupdate_timestamp">' . __( 'Update on', $this -> text_domain ) . ': <b>' . $fup_date . '</b></span>';
+		echo '	<span id="futureupdate_timestamp"> ' . __( 'Update on', $this -> text_domain ) . ': <b>' . $fup_date . '</b></span>';
 		echo '	<a href="#edit_futureupdate_date" class="edit-futureupdate_date hide-if-no-js" tabindex="4">' . __( 'Edit' ) . '</a>';
 		echo '	<div id="futureupdate_date_div" class="hide-if-js">';
 		$this -> touchTime( ( $action == 'edit' ), 1, 4 );
@@ -266,7 +266,8 @@ class FutureUpdate
 	 * @param unknown_type $multi
 	 */
 	function touchTime( $edit = 1, $for_post = 1, $tab_index = 0, $multi = 0 ) {
-		global $wp_locale, $post, $comment;
+		global $wp_locale;
+		$post = get_post();
 
 		$fup_date = get_post_meta( $post->ID, 'fup_date', true );
 		$fup_date_gmt = get_post_meta( $post->ID, 'fup_date_gmt', true );
@@ -290,12 +291,15 @@ class FutureUpdate
 
 		$month = "<select " . ( $multi ? '' : 'id="fup_month" ' ) . "name=\"fup_month\"$tab_index_attribute>\n";
 		for ( $i = 1; $i < 13; $i = $i +1 ) {
-			$month .= "\t\t\t" . '<option value="' . zeroise($i, 2) . '"';
+			$monthnum = zeroise($i, 2);
+			$month .= "\t\t\t" . '<option value="' . $monthnum . '"';
 			if ( $i == $mm )
 				$month .= ' selected="selected"';
-			$month .= '>' . $wp_locale -> get_month_abbrev( $wp_locale -> get_month( $i ) ) . "</option>\n";
+			/* translators: 1: month number (01, 02, etc.), 2: month abbreviation */
+			$month .= '>' . sprintf( __( '%1$s-%2$s' ), $monthnum, $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) ) ) . "</option>\n";
 		}
 		$month .= '</select>';
+
 
 		$day = '<input type="text" ' . ( $multi ? '' : 'id="fup_day" ' ) . 'name="fup_day" value="' . $jj . '" size="2" maxlength="2"' . $tab_index_attribute . ' autocomplete="off" />';
 		$year = '<input type="text" ' . ( $multi ? '' : 'id="fup_year" ' ) . 'name="fup_year" value="' . $aa . '" size="4" maxlength="4"' . $tab_index_attribute . ' autocomplete="off" />';
@@ -305,7 +309,7 @@ class FutureUpdate
 
 		echo '<div class="futureupdate_date-wrap">';
 		/* translators: 1: month input, 2: day input, 3: year input, 4: hour input, 5: minute input */
-		printf(__('%1$s%2$s, %3$s @ %4$s : %5$s'), $month, $day, $year, $hour, $minute);
+		printf(__('%1$s %2$s, %3$s @ %4$s : %5$s'), $month, $day, $year, $hour, $minute);
 
 		echo '</div><input type="hidden" id="fup_second" name="fup_second" value="' . $ss . '" />';
 
@@ -315,7 +319,7 @@ class FutureUpdate
 
 		echo '<p>';
 		echo '<a href="#edit_futureupdate_date" class="save-futureupdate_date hide-if-no-js button">' . __('OK') . '</a> ';
-		echo '<a href="#edit_futureupdate_date" class="cancel-futureupdate_date hide-if-no-js">' . __('Cancel') . '</a>';
+		echo '<a href="#edit_futureupdate_date" class="cancel-futureupdate_date hide-if-no-js button-cancel">' . __('Cancel') . '</a>';
 		echo '</p>';
 
 	}

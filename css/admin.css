@@ -1,34 +1,56 @@
 .curtime #futureupdate_timestamp {
-    background-image: url("../images/date-button.gif");
+	padding: 2px 0 1px;
+	display: inline !important;
+	height: auto !important;
 }
 
-.curtime #futureupdate_timestamp {
-    background-position: left top;
-    background-repeat: no-repeat;
-    padding-left: 18px;
-	line-height: 23px;
+.curtime #futureupdate_timestamp:before {
+	font: 400 20px/1 dashicons;
+	speak: none;
+	display: inline-block;
+	padding: 0 2px 0 0;
+	top: 0;
+	left: -1px;
+	position: relative;
+	vertical-align: top;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-decoration: none !important;
+	content: '\f145';
+	top: -1px;
+	color: #888;
 }
 
 th#fupdate {
-	width: 10%;	
+	width: 10%;
 }
 
 #fup_year, #fup_day, #fup_hour, #fup_minute {
-padding: 1px;
-font-size: 12px;
+	padding: 1px;
+	font-size: 12px;
 }
 
 #fup_year {
-width: 3.4em;
+	width: 3.4em;
 }
 
 #fup_day, #fup_hour, #fup_minute {
-width: 2em;
+	width: 2em;
 }
 
-#futureupdate_timestamp select {
-height: 20px;
-line-height: 14px;
-padding: 0;
-vertical-align: top;
+#futureupdate_date_div {
+	padding-top: 5px;
+	line-height: 23px;
+}
+
+#futureupdate_date_div p {
+	margin: 8px 0 6px;
+}
+
+#futureupdate_date_div select {
+	height: 21px;
+	line-height: 14px;
+	padding: 0;
+	vertical-align: top;
+	font-size: 12px;
 }
